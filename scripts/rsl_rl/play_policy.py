@@ -33,6 +33,8 @@ SIM_ENVIRONMENTS = {
     "bow_forward_clf_sym": "G1-bow_forward-clf-symmetric",    # TODO: make this a play
 
     "bend_up_clf_sym": "G1-bend_up-clf-play",
+
+    "hu_d04_running_clf": "HU_D04-running-clf-play",
 }
 
 class DataLogger:

@@ -29,6 +29,8 @@ ENVIRONMENTS = {
     "bow_forward_clf_sym": "G1-bow_forward-clf-symmetric",
 
     "bend_up_clf_sym": "G1-bend_up-clf-symmetric",
+
+    "hu_d04_running_clf": "HU_D04-running-clf",
 }
 
 EXPERIMENT_NAMES = {
@@ -53,6 +55,8 @@ EXPERIMENT_NAMES = {
     "bow_forward_clf_sym": "bow_forward-clf-symmetric",
 
     "bend_up_clf_sym": "bend_up-clf-symmetric",
+
+    "hu_d04_running_clf": "hu_d04_running_clf",
 }
 
 
@@ -196,8 +200,17 @@ def main():
 
 
         # Handle resume path
-        if agent_cfg.resume_path or agent_cfg.algorithm.class_name == "Distillation":
+        if agent_cfg.load_run and agent_cfg.load_checkpoint:
+            from isaaclab_tasks.utils import get_checkpoint_path
+            resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
+        elif agent_cfg.resume_path:
             resume_path = agent_cfg.resume_path
+        else:
+            resume_path = None
+
+        if resume_path is not None or agent_cfg.algorithm.class_name == "Distillation":
+            if resume_path is None:
+                raise ValueError("Resume requested but no checkpoint path provided. Use --load_run and --checkpoint.")
             agent_cfg.resume = True
 
         # Setup video recording if enabled
