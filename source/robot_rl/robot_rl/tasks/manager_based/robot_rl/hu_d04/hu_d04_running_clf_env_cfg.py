@@ -535,6 +535,15 @@ class HUD04RunningRewardCfg(G1TrajOptCLFRewards):
         },
     )
 
+    # Penalize the knees adducting (scissoring) closer than a clearance margin
+    knee_spacing_penalty = RewTerm(
+        func=mdp.knee_spacing_penalty,
+        weight=-3.0,
+        params={
+            "sep_threshold": 0.10,
+        },
+    )
+
     # TODO: Try removing the holonomic rewards
 
     if REWARD_TYPE == "CLF":

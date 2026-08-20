@@ -495,6 +495,23 @@ def torque_limits(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntit
     return torch.sum(violation, dim=1)
 
 
+def _lateral_separation(
+    env: ManagerBasedRLEnv,
+    asset: Articulation,
+    left_body_name: str,
+    right_body_name: str,
+) -> torch.Tensor:
+    """Compute the body-frame lateral separation of two named bodies (left minus right)."""
+    body_idx_l = asset.body_names.index(left_body_name)
+    body_idx_r = asset.body_names.index(right_body_name)
+    body_pos_w = asset.data.body_pos_w[:, [body_idx_l, body_idx_r], :] - asset.data.root_pos_w.unsqueeze(1)
+    body_pos_b = quat_rotate_inverse(
+        asset.data.root_quat_w.unsqueeze(1).repeat(1, 2, 1).reshape(-1, 4),
+        body_pos_w.reshape(-1, 3),
+    ).reshape(body_pos_w.shape)
+    return body_pos_b[:, 0, 1] - body_pos_b[:, 1, 1]
+
+
 def feet_crossing_penalty(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -511,15 +528,27 @@ def feet_crossing_penalty(
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
 
-    # body-frame lateral positions of the two feet
-    body_idx_l = asset.body_names.index(left_foot_name)
-    body_idx_r = asset.body_names.index(right_foot_name)
-    feet_pos_w = asset.data.body_pos_w[:, [body_idx_l, body_idx_r], :] - asset.data.root_pos_w.unsqueeze(1)
-    feet_pos_b = quat_rotate_inverse(
-        asset.data.root_quat_w.unsqueeze(1).repeat(1, 2, 1).reshape(-1, 4),
-        feet_pos_w.reshape(-1, 3),
-    ).reshape(feet_pos_w.shape)
-
     # lateral separation: positive when the left foot stays on the left side
-    lateral_sep = feet_pos_b[:, 0, 1] - feet_pos_b[:, 1, 1]
+    lateral_sep = _lateral_separation(env, asset, left_foot_name, right_foot_name)
+    return torch.clamp(sep_threshold - lateral_sep, min=0.0)
+
+
+def knee_spacing_penalty(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    left_knee_name: str = "left_knee_link",
+    right_knee_name: str = "right_knee_link",
+    sep_threshold: float = 0.1,
+) -> torch.Tensor:
+    """Penalize the knees adducting (scissoring) closer together laterally than ``sep_threshold``.
+
+    The penalty is the amount by which the lateral knee separation falls below
+    ``sep_threshold``, clipped at zero, so it only activates when the knees are
+    pressed together or crossed.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    # lateral separation: positive when the left knee stays on the left side
+    lateral_sep = _lateral_separation(env, asset, left_knee_name, right_knee_name)
     return torch.clamp(sep_threshold - lateral_sep, min=0.0)
