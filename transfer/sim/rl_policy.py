@@ -31,6 +31,20 @@ class RLPolicy:
         self.boundaries_crossed = 0
         self.hold_phi_value = -1.0  # -1 means not locked
 
+    def set_initial_phi(self, phi: float):
+        """Set the initial phasing variable so the simulation starts at the given phase.
+
+        The phasing variable phi is in [0, 1) over the full period for half-periodic
+        trajectories. The observation time starts at 0, so the time offset is set such
+        that raw_phi = ((0 - last_zero_time) % T) / T equals phi at sim time 0.
+
+        Args:
+            phi: Initial phase in [0, 1).
+        """
+        self.phi = phi
+        self.prev_phi = phi
+        self.last_zero_time = -phi * self.get_total_time()
+
     def load(self):
         """Load RL Policy"""
         # Get the cwd and get the logs dir relative to this.
@@ -202,13 +216,20 @@ class RLPolicy:
 
     def create_velocity_commands_obs(self, cmd_vel: np.ndarray) -> np.ndarray:
         """Create the velocity commands observation."""
-        # Clip commanded velocities at the max/min values from the params file
+        # Clip commanded velocities symmetrically at the max range from the params file.
+        # Note: the yaml stores the play-time command (fixed), but training sampled
+        # commands from a wider range, so clip against the magnitude only to avoid
+        # distorting in-range commands.
         vel_ranges = self.get_velocity_command_ranges()
 
+        max_vx = max(abs(vel_ranges['v_x_min']), abs(vel_ranges['v_x_max']))
+        max_vy = max(abs(vel_ranges['v_y_min']), abs(vel_ranges['v_y_max']))
+        max_wz = max(abs(vel_ranges['w_z_min']), abs(vel_ranges['w_z_max']))
+
         clipped_cmd = np.zeros(3)
-        clipped_cmd[0] = np.clip(cmd_vel[0], vel_ranges['v_x_min'], vel_ranges['v_x_max'])
-        clipped_cmd[1] = np.clip(cmd_vel[1], vel_ranges['v_y_min'], vel_ranges['v_y_max'])
-        clipped_cmd[2] = np.clip(cmd_vel[2], vel_ranges['w_z_min'], vel_ranges['w_z_max'])
+        clipped_cmd[0] = np.clip(cmd_vel[0], -max_vx, max_vx)
+        clipped_cmd[1] = np.clip(cmd_vel[1], -max_vy, max_vy)
+        clipped_cmd[2] = np.clip(cmd_vel[2], -max_wz, max_wz)
 
         # print(f"clipped_cmd: {clipped_cmd}")
 

@@ -31,6 +31,7 @@ ENVIRONMENTS = {
     "bend_up_clf_sym": "G1-bend_up-clf-symmetric",
 
     "hu_d04_running_clf": "HU_D04-running-clf",
+    "hu_d04_running_clf_sym": "HU_D04-running-clf-symmetric",
 }
 
 EXPERIMENT_NAMES = {
@@ -57,6 +58,7 @@ EXPERIMENT_NAMES = {
     "bend_up_clf_sym": "bend_up-clf-symmetric",
 
     "hu_d04_running_clf": "hu_d04_running_clf",
+    "hu_d04_running_clf_sym": "hu_d04_running_clf-symmetric",
 }
 
 
@@ -200,7 +202,7 @@ def main():
 
 
         # Handle resume path
-        if agent_cfg.load_run and agent_cfg.load_checkpoint:
+        if agent_cfg.resume and agent_cfg.load_run and agent_cfg.load_checkpoint:
             from isaaclab_tasks.utils import get_checkpoint_path
             resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
         elif agent_cfg.resume_path:

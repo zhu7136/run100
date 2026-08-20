@@ -15,13 +15,15 @@ from scipy.spatial.transform import Rotation
 
 class Robot:
     def __init__(self, robot_name: str, scene_name: str, joystick_scaling: np.ndarray,
-                 input_function: Callable[[float], np.array] = None, use_pd: bool =False, gains: Dict[str, float]=None, rng=None):
+                 input_function: Callable[[float], np.array] = None, use_pd: bool =False, gains: Dict[str, float]=None, rng=None,
+                 default_vx: float = 0.5):
         """Initialize the robot with its model and data."""
-        if robot_name != "g1_21j" and robot_name != "g1_21j_M4" and robot_name != "g1_21j_compute":
-            raise ValueError("Invalid robot name! Only support g1_21j for now.")
+        if robot_name != "g1_21j" and robot_name != "g1_21j_M4" and robot_name != "g1_21j_compute" and robot_name != "hu_d04":
+            raise ValueError("Invalid robot name! Only support g1_21j and hu_d04 for now.")
 
         self.robot_name = robot_name
         self.scene_name = scene_name
+        self.default_vx = default_vx
         self.mj_model, self.mj_data = self._get_model_data()
         self.commanded_vel = np.zeros(3)  # Store commanded velocity
         self.input_function = input_function
@@ -53,7 +55,7 @@ class Robot:
     def _get_model_data(self):
         """Create the mj model and data from the given robot."""
         file_name = f"{self.robot_name}_{self.scene_name}.xml"
-        relative_path = f"robots/g1/{file_name}"
+        relative_path = f"robots/{self.robot_name}/{file_name}"
         path = os.path.join(os.getcwd(), relative_path)
         print(f"Trying to load the xml at {path}")
         mj_model = mujoco.MjModel.from_xml_path(path)
@@ -152,7 +154,7 @@ class Robot:
             des_vel[1] = vy
             des_vel[2] = vyaw
         else:
-            des_vel = np.array([0.5, 0.0, 0.0])
+            des_vel = np.array([self.default_vx, 0.0, 0.0])
         self.commanded_vel = des_vel  # Store the commanded velocity
         # print(f"Commanded velocity: {des_vel}")
         return des_vel

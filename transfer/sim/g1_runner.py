@@ -36,6 +36,7 @@ EXPERIMENT_NAMES = {
 
     "running_clf": "running_clf",
     "running_clf_sym": "running-clf-symmetric",
+    "hu_d04_running_clf": "hu_d04_running_clf",
 
     "waving_clf": "waving_clf",
 
@@ -72,6 +73,10 @@ def main():
                        help="Robot name")
     parser.add_argument("--use_ic", action="store_true", default=False,
                        help="Use the valid initial condition from the policy YAML")
+    parser.add_argument("--init_phi", type=float, default=None,
+                       help="Initial phasing variable phi in [0,1) to start the simulation at")
+    parser.add_argument("--default_vx", type=float, default=None,
+                       help="Forward velocity command when no joystick is connected (default: 3.0 for hu_d04, 0.5 otherwise)")
     parser.add_argument("--log", action="store_true", default=False,
                        help="Enable logging")
     parser.add_argument("--log_dir", type=str, default=None,
@@ -131,19 +136,30 @@ def main():
     policy.load()
 
     # Create robot instance
+    robot_name = "hu_d04" if args.env_type.startswith("hu_d04") else args.robot_name
+    if args.default_vx is None:
+        default_vx = 3.0 if robot_name == "hu_d04" else 0.5
+    else:
+        default_vx = args.default_vx
     gains = {"kp_y": 1.5, "kd_y": 0.3, "kp_yaw": 0.8, "kd_yaw": 0.3}
     robot_instance = Robot(
-        robot_name=args.robot_name,
+        robot_name=robot_name,
         scene_name=args.scene,
         joystick_scaling=np.array([1,1,1]),
         input_function=None,
         use_pd=False,
         gains=gains,
+        default_vx=default_vx,
     )
 
     # Set initial condition from YAML if requested
     if args.use_ic:
         robot_instance.set_initial_condition(policy)
+
+    # Set the initial phasing variable so the IC pose matches the reference trajectory
+    if args.init_phi is not None:
+        print(f"[INFO] Setting initial phi to {args.init_phi}")
+        policy.set_initial_phi(args.init_phi)
 
     # Set up log directory
     if args.log_dir is None:
@@ -152,13 +168,14 @@ def main():
         log_dir = args.log_dir
 
     # Create and run simulation
+    tracking_body = "pelvis_link" if robot_name == "hu_d04" else "torso_link"
     sim = Simulation(
         policy,
         robot_instance,
         log=args.log,
         log_dir=log_dir,
         use_height_sensor=False,  # Not using height sensor for now
-        tracking_body_name="torso_link",
+        tracking_body_name=tracking_body,
     )
     sim.run(-1)  # Run forever
 

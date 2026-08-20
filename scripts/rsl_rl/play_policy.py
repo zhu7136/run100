@@ -35,6 +35,7 @@ SIM_ENVIRONMENTS = {
     "bend_up_clf_sym": "G1-bend_up-clf-play",
 
     "hu_d04_running_clf": "HU_D04-running-clf-play",
+    "hu_d04_running_clf_sym": "HU_D04-running-clf-play",
 }
 
 class DataLogger:
