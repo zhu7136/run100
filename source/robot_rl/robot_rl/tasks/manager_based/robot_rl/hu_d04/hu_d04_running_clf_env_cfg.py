@@ -526,6 +526,15 @@ class HUD04RunningRewardCfg(G1TrajOptCLFRewards):
         weight=-1.0,    # Can go to -10 for slightly more endurance
     )
 
+    # Penalize the legs crossing or coming too close laterally during the gait
+    feet_crossing_penalty = RewTerm(
+        func=mdp.feet_crossing_penalty,
+        weight=-5.0,
+        params={
+            "sep_threshold": 0.08,
+        },
+    )
+
     # TODO: Try removing the holonomic rewards
 
     if REWARD_TYPE == "CLF":
