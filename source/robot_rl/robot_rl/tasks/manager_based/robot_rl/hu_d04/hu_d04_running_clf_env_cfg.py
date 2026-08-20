@@ -540,7 +540,7 @@ class HUD04RunningRewardCfg(G1TrajOptCLFRewards):
         func=mdp.knee_spacing_penalty,
         weight=-3.0,
         params={
-            "sep_threshold": 0.10,
+            "sep_threshold": 0.13,
         },
     )
 
